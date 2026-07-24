@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>YTScrollingKiller</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: #000;
+      overflow: hidden;
+      touch-action: none;
+    }
+    #player {
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div id="player"></div>
+  <script>
+    function getVideoId() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('v') || '';
+    }
+
+    const tag = document.createElement('script');
+    tag.src = 'https://www.youtube.com/iframe_api';
+    document.head.appendChild(tag);
+
+    let player;
+    function onYouTubeIframeAPIReady() {
+      const videoId = getVideoId();
+      if (!videoId) return;
+      player = new YT.Player('player', {
+        videoId: videoId,
+        host: 'https://www.youtube-nocookie.com',
+        playerVars: {
+          autoplay: 1,
+          playsinline: 1,
+          rel: 0,
+          modestbranding: 1,
+          fs: 1,
+          controls: 1,
+          iv_load_policy: 3,
+          disablekb: 0
+        },
+        events: {
+          onReady: function (event) {
+            event.target.playVideo();
+          }
+        }
+      });
+    }
+
+    // Block wheel / touch scroll chaining that could feel like Shorts feed.
+    document.addEventListener('touchmove', function (e) {
+      e.preventDefault();
+    }, { passive: false });
+    document.addEventListener('wheel', function (e) {
+      e.preventDefault();
+    }, { passive: false });
+  </script>
+</body>
+</html>

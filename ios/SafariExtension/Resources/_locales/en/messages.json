@@ -1,0 +1,10 @@
+{
+  "extension_name": {
+    "message": "YTScrollingKiller",
+    "description": "Extension name"
+  },
+  "extension_description": {
+    "message": "Opens YouTube Shorts in YTScrollingKiller as a single video without endless scrolling.",
+    "description": "Extension description"
+  }
+}

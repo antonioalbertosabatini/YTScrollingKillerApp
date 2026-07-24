@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">YTScrollingKiller</string>
+    <string name="accessibility_service_description">Detects YouTube Shorts opened in browsers and opens YTScrollingKiller so you can watch a single short without endless scrolling.</string>
+</resources>
