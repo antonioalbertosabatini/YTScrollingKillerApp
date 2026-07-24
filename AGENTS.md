@@ -4,7 +4,7 @@ Guidance for AI coding agents working in this repository.
 
 ## Product summary
 
-Android-first companion: the user watches **one** YouTube Short **in the browser**. Changing to another Short (swipe / related / autoplay) shows a blocking Accessibility overlay with a single **Close tab** action. No in-app video player takeover.
+Android-first companion: the user watches **one** YouTube Short **in the browser**. Changing to another Short (swipe / related / autoplay) **pauses playback** and shows a blocking Accessibility overlay with a single **Close tab** action. No in-app video player takeover.
 
 UI language: **English**. Distribution: **local testing only**.
 
@@ -33,6 +33,7 @@ scripts/open_android_studio.sh
 | Goal | Location |
 |------|----------|
 | Silent watch / id-change block | `android/.../ShortsAccessibilityService.kt` |
+| Pause on block (gesture / a11y / audio focus) | `pauseActiveShortThenShowOverlay()` in `ShortsAccessibilityService.kt` |
 | Overlay UI copy / button | `res/layout/scroll_block_overlay.xml`, `res/values/strings.xml` |
 | Close-tab heuristics | `CLOSE_TAB_*` in `ShortsAccessibilityService.kt` |
 | Setup copy | `lib/features/setup/setup_screen.dart` |
@@ -44,6 +45,7 @@ scripts/open_android_studio.sh
 
 - Keep Shorts playback in the browser.
 - Block only when the Shorts **video id changes**.
+- On block, **pause** the Short before showing the overlay.
 - Keep overlay non-dismissible except **Close tab**.
 - Keep UI strings in English.
 

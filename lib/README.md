@@ -14,7 +14,7 @@ lib/
 
 ## Role
 
-The Flutter app is a **setup companion**. Shorts playback and blocking happen in the browser via the Android Accessibility service — not via an in-app player.
+The Flutter app is a **setup companion** with a dark Session cut UI. Shorts playback and blocking happen in the browser via the Android Accessibility service — not via an in-app player. On Short id change the service pauses playback, then shows the overlay.
 
 ## Testing
 

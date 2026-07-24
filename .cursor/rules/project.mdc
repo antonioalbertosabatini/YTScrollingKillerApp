@@ -10,7 +10,7 @@ Before changing code, read [AGENTS.md](../../AGENTS.md) for the repo map and do/
 ## Conventions
 
 - Flutter Setup companion; English UI only.
-- Android: Shorts stay in the browser; block on Shorts id change with Accessibility overlay + Close tab only.
+- Android: Shorts stay in the browser; block on Shorts id change with pause + Accessibility overlay + Close tab only.
 - Do not reintroduce in-app Shorts player takeover on Android.
 - No MITM VPN. No YouTube-app intercept.
 - Keep `lib/README.md`, `android/README.md`, and `ios/README.md` accurate when changing behavior.

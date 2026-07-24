@@ -2,22 +2,32 @@ package com.ytscrollingkiller.ytscrolling_killer
 
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo
+import android.accessibilityservice.GestureDescription
+import android.content.Context
+import android.graphics.Path
 import android.graphics.PixelFormat
+import android.media.AudioAttributes
+import android.media.AudioFocusRequest
+import android.media.AudioManager
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
+import android.view.View
 import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import android.view.animation.DecelerateInterpolator
 import android.widget.Button
 import android.widget.FrameLayout
+import android.widget.LinearLayout
 
 /**
  * Lets the user watch one YouTube Short in the browser. When the Shorts id
- * changes (swipe / related / autoplay), shows a blocking overlay and offers
- * only "Close tab".
+ * changes (swipe / related / autoplay), pauses playback, shows a blocking
+ * overlay, and offers only "Close tab".
  */
 class ShortsAccessibilityService : AccessibilityService() {
 
@@ -28,6 +38,7 @@ class ShortsAccessibilityService : AccessibilityService() {
     private var browserPackage: String? = null
 
     private var overlayView: FrameLayout? = null
+    private var audioFocusRequest: AudioFocusRequest? = null
     private val mainHandler = Handler(Looper.getMainLooper())
 
     override fun onServiceConnected() {
@@ -66,6 +77,7 @@ class ShortsAccessibilityService : AccessibilityService() {
 
     override fun onDestroy() {
         dismissOverlay()
+        abandonAudioFocus()
         super.onDestroy()
     }
 
@@ -105,7 +117,112 @@ class ShortsAccessibilityService : AccessibilityService() {
     private fun enterBlocked() {
         if (mode == Mode.Blocked) return
         mode = Mode.Blocked
-        mainHandler.post { showOverlay() }
+        mainHandler.post {
+            pauseActiveShortThenShowOverlay()
+        }
+    }
+
+    /**
+     * Pause under the browser first, then show the overlay.
+     * Order matters: a center-tap gesture must not hit the overlay.
+     */
+    private fun pauseActiveShortThenShowOverlay() {
+        val clickedPause = tryClickPauseControl()
+        if (clickedPause) {
+            requestAudioFocusBackup()
+            mainHandler.postDelayed({ showOverlay() }, PAUSE_SETTLE_MS)
+            return
+        }
+
+        requestAudioFocusBackup()
+        val gestured = dispatchCenterTapGesture { showOverlay() }
+        if (!gestured) {
+            mainHandler.postDelayed({ showOverlay() }, PAUSE_SETTLE_MS)
+        }
+    }
+
+    private fun tryClickPauseControl(): Boolean {
+        val root = rootInActiveWindow ?: return false
+        try {
+            if (clickByContentDescriptions(root, PAUSE_DESCRIPTIONS)) return true
+            if (clickByText(root, PAUSE_TEXTS)) return true
+        } finally {
+            root.recycle()
+        }
+        return false
+    }
+
+    private fun dispatchCenterTapGesture(onDone: () -> Unit): Boolean {
+        val dm = resources.displayMetrics
+        val x = dm.widthPixels / 2f
+        val y = dm.heightPixels * 0.42f
+
+        val path = Path().apply { moveTo(x, y) }
+        val stroke = GestureDescription.StrokeDescription(path, 0, 60)
+        val gesture = GestureDescription.Builder().addStroke(stroke).build()
+
+        return try {
+            dispatchGesture(
+                gesture,
+                object : GestureResultCallback() {
+                    override fun onCompleted(gestureDescription: GestureDescription?) {
+                        mainHandler.postDelayed(onDone, PAUSE_SETTLE_MS)
+                    }
+
+                    override fun onCancelled(gestureDescription: GestureDescription?) {
+                        Log.w(TAG, "Center tap pause cancelled")
+                        mainHandler.post(onDone)
+                    }
+                },
+                null,
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "Center tap pause failed", e)
+            false
+        }
+    }
+
+    private fun requestAudioFocusBackup() {
+        val am = getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val attrs = AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_MOVIE)
+                    .build()
+                val request = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
+                    .setAudioAttributes(attrs)
+                    .setOnAudioFocusChangeListener { }
+                    .build()
+                audioFocusRequest = request
+                am.requestAudioFocus(request)
+            } else {
+                @Suppress("DEPRECATION")
+                am.requestAudioFocus(
+                    null,
+                    AudioManager.STREAM_MUSIC,
+                    AudioManager.AUDIOFOCUS_GAIN_TRANSIENT,
+                )
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Audio focus request failed", e)
+        }
+    }
+
+    private fun abandonAudioFocus() {
+        val am = getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                audioFocusRequest?.let { am.abandonAudioFocusRequest(it) }
+            } else {
+                @Suppress("DEPRECATION")
+                am.abandonAudioFocus(null)
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Abandon audio focus failed", e)
+        } finally {
+            audioFocusRequest = null
+        }
     }
 
     private fun showOverlay() {
@@ -118,6 +235,11 @@ class ShortsAccessibilityService : AccessibilityService() {
         view.findViewById<Button>(R.id.scroll_block_close_button).setOnClickListener {
             onCloseTabClicked()
         }
+
+        val panel = view.findViewById<LinearLayout>(R.id.scroll_block_panel)
+        view.alpha = 0f
+        panel.translationY = 28f * resources.displayMetrics.density
+        panel.alpha = 0f
 
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT,
@@ -138,11 +260,26 @@ class ShortsAccessibilityService : AccessibilityService() {
         try {
             wm.addView(view, params)
             overlayView = view
+            animateOverlayIn(view, panel)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to show overlay", e)
             mode = Mode.Idle
             activeShortId = null
         }
+    }
+
+    private fun animateOverlayIn(root: View, panel: View) {
+        root.animate()
+            .alpha(1f)
+            .setDuration(OVERLAY_ANIM_MS)
+            .setInterpolator(DecelerateInterpolator())
+            .start()
+        panel.animate()
+            .alpha(1f)
+            .translationY(0f)
+            .setDuration(OVERLAY_ANIM_MS)
+            .setInterpolator(DecelerateInterpolator())
+            .start()
     }
 
     private fun dismissOverlay() {
@@ -158,6 +295,7 @@ class ShortsAccessibilityService : AccessibilityService() {
 
     private fun onCloseTabClicked() {
         dismissOverlay()
+        abandonAudioFocus()
         // Let the browser regain the active window after overlay removal.
         mainHandler.postDelayed({
             val closed = tryCloseCurrentTab()
@@ -343,6 +481,8 @@ class ShortsAccessibilityService : AccessibilityService() {
     companion object {
         private const val TAG = "ShortsA11y"
         private const val YOUTUBE_HOME = "https://www.youtube.com/"
+        private const val PAUSE_SETTLE_MS = 220L
+        private const val OVERLAY_ANIM_MS = 220L
 
         private val WATCHED_PACKAGES = setOf(
             "com.android.chrome",
@@ -387,6 +527,18 @@ class ShortsAccessibilityService : AccessibilityService() {
         private val CLOSE_TAB_TEXTS = listOf(
             "Close tab",
             "Close",
+        )
+
+        private val PAUSE_DESCRIPTIONS = listOf(
+            "Pause",
+            "Pausa",
+            "Pause video",
+            "Pause short",
+        )
+
+        private val PAUSE_TEXTS = listOf(
+            "Pause",
+            "Pausa",
         )
 
         private val SHORTS_REGEX =

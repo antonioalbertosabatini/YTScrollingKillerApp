@@ -1,6 +1,6 @@
 # YTScrollingKiller
 
-Mobile companion that lets you watch **one YouTube Short in the browser**, then **blocks scrolling** to more Shorts with a full-screen popup and closes the tab.
+Mobile companion that lets you watch **one YouTube Short in the browser**, then **blocks scrolling** to more Shorts: pauses playback, shows a full-screen popup, and closes the tab.
 
 > Local testing only. Android scroll-block is the active path. The native YouTube app is out of scope.
 
@@ -8,7 +8,7 @@ Mobile companion that lets you watch **one YouTube Short in the browser**, then 
 
 1. You open a Short in Chrome (or another supported browser) — playback stays in the browser; this app does not take over.
 2. You can watch that Short normally (including to the end).
-3. If you try to go to another Short (swipe, related, or autoplay), a blocking overlay appears: **“Scrolling blocked”**.
+3. If you try to go to another Short (swipe, related, or autoplay), playback pauses and a blocking overlay appears: **“Session stopped”**.
 4. The only action is **Close tab** (best-effort close; falls back to YouTube Home).
 
 ## How it works
@@ -23,6 +23,9 @@ Browser Shorts URL (silent watch)
  Short id changes (swipe / related / autoplay)
         │
         ▼
+ Pause playback (a11y / center tap / audio focus)
+        │
+        ▼
  Full-screen accessibility overlay
         │
         ▼
@@ -34,13 +37,14 @@ Browser Shorts URL (silent watch)
 - Does **not** intercept the YouTube native app.
 - Android first; iOS Safari scroll-block is not active yet.
 - Closing the tab depends on browser Accessibility nodes; if that fails, the service navigates to `https://www.youtube.com/`.
+- Pause is best-effort via Accessibility gestures and audio focus; some browser layouts may still leak audio briefly.
 
 ## How to use (Android)
 
 1. Install and open the app.
 2. Tap **Open Accessibility settings** and enable **YTScrollingKiller Shorts Guard**.
 3. Open a Short in Chrome — watch normally.
-4. Swipe (or related / autoplay) → overlay → **Close tab**.
+4. Swipe (or related / autoplay) → pause + overlay → **Close tab**.
 
 ## Install / run locally
 
