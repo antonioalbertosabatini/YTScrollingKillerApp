@@ -66,6 +66,7 @@ test/                          # unit + widget tests
 flutter pub get
 flutter test
 flutter analyze
+./scripts/open_android_studio.sh   # open project in Android Studio for phone testing
 flutter run -d android
 flutter run -d ios
 ```

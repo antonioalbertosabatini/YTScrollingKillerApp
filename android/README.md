@@ -26,8 +26,21 @@ Launches for the same video id are debounced (~2.5s) to avoid reopen loops while
 
 ## How to rebuild / test
 
+### Open Android Studio (recommended for a physical phone)
+
+From the repo root:
+
 ```bash
-flutter run -d android
+./scripts/open_android_studio.sh
+```
+
+This runs `flutter pub get`, lists devices, and opens the Flutter project in Android Studio. Select your phone and press Run.
+
+### CLI
+
+```bash
+flutter devices
+flutter run -d <device_id>
 ```
 
 1. Open the app → **Open Accessibility settings**.

@@ -80,13 +80,26 @@ flutter pub get
 flutter test
 ```
 
-### Run on Android
+### Run on Android (phone via Android Studio)
+
+Open the project in Android Studio with one command (from the repo root):
 
 ```bash
-flutter run -d android
+./scripts/open_android_studio.sh
 ```
 
-Then enable the Accessibility service from the in-app Setup screen.
+Then:
+
+1. On the phone: enable **Developer options** and **USB debugging**, connect USB, accept the prompt.
+2. In Android Studio: wait for Gradle/Flutter sync, pick your phone in the device dropdown, press **Run (▶)**.
+3. In the app, enable the Accessibility service from the Setup screen.
+
+Alternatively, from the terminal once the phone is connected:
+
+```bash
+flutter devices
+flutter run
+```
 
 Verified locally: `flutter build apk --debug` succeeds.
 
