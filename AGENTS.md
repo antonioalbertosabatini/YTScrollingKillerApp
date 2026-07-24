@@ -4,61 +4,55 @@ Guidance for AI coding agents working in this repository.
 
 ## Product summary
 
-Flutter app that intercepts YouTube Shorts **in mobile browsers** (not the YouTube app), plays a **single** short via YouTube IFrame embed, blocks Shorts-to-Shorts scrolling, and opens **YouTube Home** on demand.
+Android-first companion: the user watches **one** YouTube Short **in the browser**. Changing to another Short (swipe / related / autoplay) shows a blocking Accessibility overlay with a single **Close tab** action. No in-app video player takeover.
 
 UI language: **English**. Distribution: **local testing only**.
 
 ## Stack
 
-- Flutter / Dart (`lib/`)
-- `webview_flutter` — IFrame player
-- `url_launcher` — YouTube Home
-- `app_links` — `ytsk://short/{id}` and https Shorts intents
-- Android: `ShortsAccessibilityService`
-- iOS: Safari Web Extension under `ios/SafariExtension/`
+- Flutter / Dart (`lib/`) — Setup screen only on Android path
+- Android: `ShortsAccessibilityService` + overlay layout
+- iOS Safari scroll-block: deferred
 
 ## Repo map
 
 ```text
 lib/
-  main.dart, app.dart          # entry + MaterialApp + deep-link routing
-  core/                        # ShortUrlParser, DeepLinkService
-  features/setup/              # Setup / enablement screen
-  features/player/             # Single-short WebView player
-assets/youtube_embed.html      # Reference embed HTML (player inlines HTML too)
+  main.dart, app.dart          # entry + MaterialApp → SetupScreen
+  core/short_url_parser.dart   # shared URL helpers / unit tests
+  features/setup/              # enable Accessibility; explain behavior
 android/.../ShortsAccessibilityService.kt
-ios/SafariExtension/           # Safari Web Extension sources
-test/                          # unit + widget tests
+android/.../res/layout/scroll_block_overlay.xml
+ios/SafariExtension/           # legacy / future iOS work
+test/
+scripts/open_android_studio.sh
 ```
 
 ## Where to change what
 
 | Goal | Location |
 |------|----------|
-| Parse Shorts / deep-link URLs | `lib/core/short_url_parser.dart` |
-| Deep link listening | `lib/core/deep_links.dart`, `lib/app.dart` |
-| Player / Home button | `lib/features/player/player_screen.dart` |
-| Setup copy / platform instructions | `lib/features/setup/setup_screen.dart` |
-| Android browser packages / URL bars | `android/.../ShortsAccessibilityService.kt` |
-| Android intents / service registration | `android/app/src/main/AndroidManifest.xml` |
-| iOS URL scheme | `ios/Runner/Info.plist` (`CFBundleURLTypes`) |
-| Safari redirect logic | `ios/SafariExtension/Resources/content.js`, `background.js` |
+| Silent watch / id-change block | `android/.../ShortsAccessibilityService.kt` |
+| Overlay UI copy / button | `res/layout/scroll_block_overlay.xml`, `res/values/strings.xml` |
+| Close-tab heuristics | `CLOSE_TAB_*` in `ShortsAccessibilityService.kt` |
+| Setup copy | `lib/features/setup/setup_screen.dart` |
+| URL parsing helpers | `lib/core/short_url_parser.dart` |
 
 ## Do / don’t
 
 **Do**
 
+- Keep Shorts playback in the browser.
+- Block only when the Shorts **video id changes**.
+- Keep overlay non-dismissible except **Close tab**.
 - Keep UI strings in English.
-- Prefer `/shorts/{id}` detection; treat watch-page Shorts as best-effort.
-- Keep the player as a **single** embed (no Shorts feed UI).
-- Update directory READMEs when moving native intercept code.
 
 **Don’t**
 
-- Add MITM / decrypting VPN to inspect HTTPS paths.
-- Intercept the YouTube **native app** (out of scope).
-- Assume Chrome on iOS can use the Safari extension (it cannot).
-- Commit secrets or store credentials.
+- Reintroduce in-app Shorts player takeover on Android.
+- Add MITM / decrypting VPN.
+- Intercept the YouTube **native app**.
+- Allow “keep watching” after the block popup.
 
 ## Commands
 
@@ -66,9 +60,8 @@ test/                          # unit + widget tests
 flutter pub get
 flutter test
 flutter analyze
-./scripts/open_android_studio.sh   # open project in Android Studio for phone testing
-flutter run -d android
-flutter run -d ios
+./scripts/open_android_studio.sh
+flutter run
 ```
 
 ## Further reading

@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">YTScrollingKiller</string>
-    <string name="accessibility_service_description">Detects YouTube Shorts opened in browsers and opens YTScrollingKiller so you can watch a single short without endless scrolling.</string>
+    <string name="accessibility_service_description">Allows watching one YouTube Short in the browser. Blocks scrolling to more Shorts and closes the tab.</string>
+    <string name="scroll_block_title">Scrolling blocked</string>
+    <string name="scroll_block_message">You can watch this Short, but not the next one.</string>
+    <string name="scroll_block_close_button">Close tab</string>
+    <string name="accessibility_service_label">YTScrollingKiller Shorts Guard</string>
 </resources>

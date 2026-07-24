@@ -9,8 +9,8 @@ Before changing code, read [AGENTS.md](../../AGENTS.md) for the repo map and do/
 
 ## Conventions
 
-- Flutter app; English UI only.
-- Single-short playback via YouTube IFrame embed — do not introduce a Shorts feed.
-- Intercept browsers only (Android Accessibility / iOS Safari extension). No YouTube-app intercept. No MITM VPN.
-- Deep link scheme: `ytsk://short/{videoId}`.
-- Keep `lib/README.md`, `android/README.md`, and `ios/README.md` accurate when moving native or Dart entry points.
+- Flutter Setup companion; English UI only.
+- Android: Shorts stay in the browser; block on Shorts id change with Accessibility overlay + Close tab only.
+- Do not reintroduce in-app Shorts player takeover on Android.
+- No MITM VPN. No YouTube-app intercept.
+- Keep `lib/README.md`, `android/README.md`, and `ios/README.md` accurate when changing behavior.

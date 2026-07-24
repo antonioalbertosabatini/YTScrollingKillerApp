@@ -1,137 +1,75 @@
 # YTScrollingKiller
 
-Mobile app (iOS + Android) that intercepts **YouTube Shorts opened in a browser**, plays **one short only** (no endless Shorts feed), and sends you back to **YouTube Home** with a button.
+Mobile companion that lets you watch **one YouTube Short in the browser**, then **blocks scrolling** to more Shorts with a full-screen popup and closes the tab.
 
-> Local testing only for now. The native YouTube app is out of scope.
+> Local testing only. Android scroll-block is the active path. The native YouTube app is out of scope.
 
-## What it does
+## What it does (Android)
 
-1. Detects when you open a YouTube Short in a supported mobile browser.
-2. Opens this app with that video.
-3. Plays it through the official YouTube IFrame embed (single video — no Shorts scrolling UI).
-4. Offers **Go to YouTube Home**, which opens `https://www.youtube.com/` in the system browser.
+1. You open a Short in Chrome (or another supported browser) — playback stays in the browser; this app does not take over.
+2. You can watch that Short normally (including to the end).
+3. If you try to go to another Short (swipe, related, or autoplay), a blocking overlay appears: **“Scrolling blocked”**.
+4. The only action is **Close tab** (best-effort close; falls back to YouTube Home).
 
 ## How it works
 
 ```text
-Browser Shorts URL
+Browser Shorts URL (silent watch)
         │
         ▼
- Platform intercept
-  • Android: Accessibility Service reads the browser URL bar
-  • iOS: Safari Web Extension redirects Shorts pages
+ Accessibility service remembers short id
         │
         ▼
- ytsk://short/{videoId}
+ Short id changes (swipe / related / autoplay)
         │
         ▼
- Flutter app → single IFrame player
+ Full-screen accessibility overlay
         │
         ▼
- "Go to YouTube Home" → youtube.com
+ "Close tab" → close browser tab (or YouTube Home)
 ```
 
 **Limitations**
 
 - Does **not** intercept the YouTube native app.
-- On iOS, only **Safari** is covered (Chrome on iOS does not load Safari extensions).
-- Age-restricted or unavailable videos may fail in the public embed.
+- Android first; iOS Safari scroll-block is not active yet.
+- Closing the tab depends on browser Accessibility nodes; if that fails, the service navigates to `https://www.youtube.com/`.
 
-## How to use
-
-### Android
+## How to use (Android)
 
 1. Install and open the app.
-2. Tap **Open Accessibility settings** and enable **YTScrollingKiller Shorts Intercept**.
-3. Open a Short in Chrome (or another supported browser).
-4. The app should open and play that single short.
-5. Tap **Go to YouTube Home** when you want to leave.
-
-You can also paste a Shorts URL on the setup screen for a manual test, or use “Open with” on a `youtube.com/shorts/...` link.
-
-### iOS (Safari)
-
-1. Install the app (with the Safari Web Extension target).
-2. Settings → Apps → Safari → Extensions → enable **YTScrollingKiller** and allow `youtube.com`.
-3. Open a Short in Safari — the extension redirects to the app.
-4. Tap **Go to YouTube Home** when you want to leave.
-
-Deep link format for manual tests: `ytsk://short/{videoId}`.
+2. Tap **Open Accessibility settings** and enable **YTScrollingKiller Shorts Guard**.
+3. Open a Short in Chrome — watch normally.
+4. Swipe (or related / autoplay) → overlay → **Close tab**.
 
 ## Install / run locally
 
 ### Prerequisites
 
 - [Flutter](https://docs.flutter.dev/get-started/install) (stable)
-- Android Studio / Android SDK (for Android)
-- **Full Xcode** (not only Command Line Tools) for iOS / Safari extension builds
-- A device or emulator/simulator
+- Android Studio / Android SDK
+- A phone or emulator
 
-### Get dependencies
-
-```bash
-cd "YTScrollingKiller App"
-flutter pub get
-```
-
-### Run tests
-
-```bash
-flutter test
-```
-
-### Run on Android (phone via Android Studio)
-
-Open the project in Android Studio with one command (from the repo root):
+### Open in Android Studio (phone testing)
 
 ```bash
 ./scripts/open_android_studio.sh
 ```
 
-Then:
+Then select your device and press Run. Enable the Accessibility service from the Setup screen.
 
-1. On the phone: enable **Developer options** and **USB debugging**, connect USB, accept the prompt.
-2. In Android Studio: wait for Gradle/Flutter sync, pick your phone in the device dropdown, press **Run (▶)**.
-3. In the app, enable the Accessibility service from the Setup screen.
-
-Alternatively, from the terminal once the phone is connected:
+### CLI
 
 ```bash
-flutter devices
+flutter pub get
+flutter test
 flutter run
-```
-
-Verified locally: `flutter build apk --debug` succeeds.
-
-### Run on iOS
-
-Requires a full Xcode install (`xcode-select -s /Applications/Xcode.app/Contents/Developer`).
-
-```bash
-flutter run -d ios
-```
-
-In Xcode, confirm the **SafariExtension** target is embedded in **Runner**, then enable the extension in Safari settings on the simulator/device.
-
-### Manual deep-link smoke test
-
-```text
-ytsk://short/dQw4w9WgXcQ
-```
-
-On Android you can also:
-
-```bash
-adb shell am start -a android.intent.action.VIEW -d "ytsk://short/dQw4w9WgXcQ"
 ```
 
 ## Stack
 
-- Flutter (shared UI + player)
-- YouTube IFrame API (`youtube-nocookie.com`)
-- Android Accessibility Service
-- iOS Safari Web Extension
-- Deep links via `app_links` (`ytsk://`)
+- Flutter Setup companion UI (English)
+- Android Accessibility Service + `TYPE_ACCESSIBILITY_OVERLAY`
 
 ## Documentation for contributors / AI agents
 
@@ -139,8 +77,8 @@ adb shell am start -a android.intent.action.VIEW -d "ytsk://short/dQw4w9WgXcQ"
 |------|---------|
 | [AGENTS.md](AGENTS.md) | Repo map and change guidelines for AI agents |
 | [lib/README.md](lib/README.md) | Dart app structure |
-| [android/README.md](android/README.md) | Android intercept details |
-| [ios/README.md](ios/README.md) | iOS URL scheme + Safari extension |
+| [android/README.md](android/README.md) | Android Accessibility scroll-block |
+| [ios/README.md](ios/README.md) | iOS notes (deferred for scroll-block) |
 | [.cursor/rules/project.mdc](.cursor/rules/project.mdc) | Cursor always-on project rule |
 
 ## License

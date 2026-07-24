@@ -5,27 +5,16 @@
 ```text
 lib/
   main.dart                 # WidgetsFlutterBinding + runApp
-  app.dart                  # YtScrollingKillerApp: navigator + deep-link → PlayerScreen
+  app.dart                  # YtScrollingKillerApp → SetupScreen
   core/
-    short_url_parser.dart   # URL → video id; isShortsUrl / extractShortsVideoId
-    deep_links.dart         # AppLinks subscription → Stream<videoId>
+    short_url_parser.dart   # URL helpers (unit-tested; not used for playback)
   features/
-    setup/setup_screen.dart # Enable Accessibility / Safari extension; manual URL open
-    player/player_screen.dart # WebView IFrame single video + YouTube Home CTA
+    setup/setup_screen.dart # Enable Accessibility; explain scroll-block
 ```
 
-## Navigation flow
+## Role
 
-1. App starts on `SetupScreen`.
-2. `DeepLinkService` emits video ids from `ytsk://short/{id}` or Shorts https links.
-3. `YtScrollingKillerApp` pushes `PlayerScreen(videoId:)`.
-4. **Go to YouTube Home** launches `https://www.youtube.com/` externally and pops to root.
-
-## Player notes
-
-- Embed HTML is inlined in `PlayerScreen` (IFrame API + `youtube-nocookie.com`).
-- Reference asset: `assets/youtube_embed.html`.
-- Scroll/touchmove is blocked in the embed page; related Shorts navigations are prevented when possible.
+The Flutter app is a **setup companion**. Shorts playback and blocking happen in the browser via the Android Accessibility service — not via an in-app player.
 
 ## Testing
 

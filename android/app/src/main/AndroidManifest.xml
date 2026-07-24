@@ -22,34 +22,13 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-
-            <!-- Custom scheme deep links -->
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="ytsk" android:host="short" />
-            </intent-filter>
-
-            <!-- Open YouTube Shorts https links with this app (testing / Open with) -->
-            <intent-filter android:autoVerify="false">
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" android:host="www.youtube.com" android:pathPrefix="/shorts/" />
-                <data android:scheme="https" android:host="m.youtube.com" android:pathPrefix="/shorts/" />
-                <data android:scheme="https" android:host="youtube.com" android:pathPrefix="/shorts/" />
-                <data android:scheme="http" android:host="www.youtube.com" android:pathPrefix="/shorts/" />
-                <data android:scheme="http" android:host="m.youtube.com" android:pathPrefix="/shorts/" />
-                <data android:scheme="http" android:host="youtube.com" android:pathPrefix="/shorts/" />
-            </intent-filter>
         </activity>
 
         <service
             android:name=".ShortsAccessibilityService"
             android:exported="false"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
-            android:label="YTScrollingKiller Shorts Intercept">
+            android:label="@string/accessibility_service_label">
             <intent-filter>
                 <action android:name="android.accessibilityservice.AccessibilityService" />
             </intent-filter>

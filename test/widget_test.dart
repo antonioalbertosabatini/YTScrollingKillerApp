@@ -5,6 +5,6 @@ void main() {
   testWidgets('Setup screen shows title', (tester) async {
     await tester.pumpWidget(const YtScrollingKillerApp());
     expect(find.text('YTScrollingKiller'), findsOneWidget);
-    expect(find.text('Stop Shorts scrolling'), findsOneWidget);
+    expect(find.text('One Short, then stop'), findsOneWidget);
   });
 }

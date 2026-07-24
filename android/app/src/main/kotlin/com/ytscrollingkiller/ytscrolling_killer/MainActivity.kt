@@ -1,7 +1,6 @@
 package com.ytscrollingkiller.ytscrolling_killer
 
 import android.content.Intent
-import android.os.Bundle
 import android.provider.Settings
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -22,11 +21,6 @@ class MainActivity : FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
-    }
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        // Deep links are delivered via intent filters / app_links.
     }
 
     companion object {
