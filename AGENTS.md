@@ -33,7 +33,7 @@ scripts/open_android_studio.sh
 | Goal | Location |
 |------|----------|
 | Silent watch / id-change block | `android/.../ShortsAccessibilityService.kt` |
-| Pause on block (gesture / a11y / audio focus) | `pauseActiveShortThenShowOverlay()` in `ShortsAccessibilityService.kt` |
+| Pause on block (a11y / multi-tap / audio focus / mute) | `pauseActiveShortThenShowOverlay()` in `ShortsAccessibilityService.kt` |
 | Overlay UI copy / button | `res/layout/scroll_block_overlay.xml`, `res/values/strings.xml` |
 | Close-tab heuristics | `CLOSE_TAB_*` in `ShortsAccessibilityService.kt` |
 | Setup copy | `lib/features/setup/setup_screen.dart` |

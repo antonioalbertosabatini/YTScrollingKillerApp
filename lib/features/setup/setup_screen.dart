@@ -15,7 +15,7 @@ class SetupScreen extends StatefulWidget {
 }
 
 class _SetupScreenState extends State<SetupScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   static const _a11yChannel = MethodChannel(
     'com.ytscrollingkiller.ytscrolling_killer/accessibility',
   );
@@ -25,9 +25,13 @@ class _SetupScreenState extends State<SetupScreen>
   late final Animation<Offset> _slide;
   late final Animation<double> _cutWidth;
 
+  bool? _guardEnabled;
+  bool _statusLoading = false;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _entrance = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 720),
@@ -51,6 +55,9 @@ class _SetupScreenState extends State<SetupScreen>
         curve: const Interval(0.35, 0.9, curve: Curves.easeOutCubic),
       ),
     );
+    if (!kIsWeb && Platform.isAndroid) {
+      _refreshGuardStatus();
+    }
   }
 
   @override
@@ -65,9 +72,39 @@ class _SetupScreenState extends State<SetupScreen>
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed &&
+        !kIsWeb &&
+        Platform.isAndroid) {
+      _refreshGuardStatus();
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _entrance.dispose();
     super.dispose();
+  }
+
+  Future<void> _refreshGuardStatus() async {
+    if (!Platform.isAndroid) return;
+    setState(() => _statusLoading = true);
+    try {
+      final enabled =
+          await _a11yChannel.invokeMethod<bool>('isAccessibilityServiceEnabled');
+      if (!mounted) return;
+      setState(() {
+        _guardEnabled = enabled ?? false;
+        _statusLoading = false;
+      });
+    } on PlatformException {
+      if (!mounted) return;
+      setState(() {
+        _guardEnabled = null;
+        _statusLoading = false;
+      });
+    }
   }
 
   Future<void> _openAccessibilitySettings(BuildContext context) async {
@@ -87,141 +124,338 @@ class _SetupScreenState extends State<SetupScreen>
     final isAndroid = !kIsWeb && Platform.isAndroid;
     final isIos = !kIsWeb && Platform.isIOS;
     final textTheme = Theme.of(context).textTheme;
-    final bottom = MediaQuery.paddingOf(context).bottom;
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
 
     return Scaffold(
-      body: SafeArea(
-        child: FadeTransition(
-          opacity: _fade,
-          child: SlideTransition(
-            position: _slide,
-            child: ListView(
-              padding: EdgeInsets.fromLTRB(24, 28, 24, 28 + bottom),
-              children: [
-                Text(
-                  'YTScrollingKiller',
-                  style: textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.6,
-                    height: 1.1,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                AnimatedBuilder(
-                  animation: _cutWidth,
-                  builder: (context, _) {
-                    final maxWidth = MediaQuery.sizeOf(context).width * 0.28;
-                    return Align(
-                      alignment: Alignment.centerLeft,
-                      child: Container(
-                        width: maxWidth * _cutWidth.value.clamp(0.0, 1.0),
-                        height: 2,
-                        decoration: BoxDecoration(
-                          color: SessionCutColors.accent,
-                          borderRadius: BorderRadius.circular(2),
+      body: Stack(
+        children: [
+          const _SessionAtmosphere(),
+          SafeArea(
+            child: FadeTransition(
+              opacity: _fade,
+              child: SlideTransition(
+                position: _slide,
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: ListView(
+                        padding: const EdgeInsets.fromLTRB(
+                          SessionCutSpace.lg,
+                          28,
+                          SessionCutSpace.lg,
+                          SessionCutSpace.md,
                         ),
+                        children: [
+                          Text(
+                            'YTScrollingKiller',
+                            style: textTheme.headlineMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: -0.6,
+                              height: 1.1,
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          AnimatedBuilder(
+                            animation: _cutWidth,
+                            builder: (context, _) {
+                              final maxWidth =
+                                  MediaQuery.sizeOf(context).width * 0.28;
+                              return Align(
+                                alignment: Alignment.centerLeft,
+                                child: Container(
+                                  width: maxWidth *
+                                      _cutWidth.value.clamp(0.0, 1.0),
+                                  height: 2,
+                                  decoration: BoxDecoration(
+                                    color: SessionCutColors.accent,
+                                    borderRadius: BorderRadius.circular(2),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                          const SizedBox(height: SessionCutSpace.xl),
+                          Text(
+                            'One Short, then stop',
+                            style: textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: -0.4,
+                              height: 1.15,
+                            ),
+                          ),
+                          const SizedBox(height: SessionCutSpace.sm),
+                          Text(
+                            'Watch one Short in your browser. Scroll to another '
+                            'and the session cuts — pause, block, close the tab.',
+                            style: textTheme.bodyLarge?.copyWith(
+                              color: SessionCutColors.muted,
+                              height: 1.45,
+                            ),
+                          ),
+                          if (isAndroid) ...[
+                            const SizedBox(height: SessionCutSpace.xl),
+                            _GuardStatusCard(
+                              enabled: _guardEnabled,
+                              loading: _statusLoading,
+                            ),
+                            const SizedBox(height: SessionCutSpace.xl),
+                            Text(
+                              'Get started',
+                              style: textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: SessionCutSpace.md),
+                            const _SetupStep(
+                              number: '1',
+                              text: 'Enable the Shorts Guard service.',
+                            ),
+                            const _SetupStep(
+                              number: '2',
+                              text: 'Open a Short in Chrome (or another '
+                                  'supported browser).',
+                            ),
+                            const _SetupStep(
+                              number: '3',
+                              text: 'Scroll to another Short — the block '
+                                  'appears. Tap Close tab.',
+                              isLast: true,
+                            ),
+                            const SizedBox(height: SessionCutSpace.lg),
+                            ExpansionTile(
+                              title: Text(
+                                'How it works',
+                                style: textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: SessionCutColors.text,
+                                ),
+                              ),
+                              children: [
+                                Text(
+                                  'The Accessibility service watches the browser '
+                                  'URL. Opening a Short is silent. Changing to a '
+                                  'different Short id pauses playback and shows '
+                                  'the overlay. Playback stays in the browser — '
+                                  'this app never opens the video.',
+                                  style: textTheme.bodyMedium?.copyWith(
+                                    color: SessionCutColors.muted,
+                                    height: 1.45,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                          if (isIos) ...[
+                            const SizedBox(height: SessionCutSpace.xl),
+                            const _IosComingLaterCard(),
+                          ],
+                        ],
                       ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 28),
-                Text(
-                  'One Short, then stop',
-                  style: textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: -0.4,
-                    height: 1.15,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Watch one YouTube Short in your browser. '
-                  'If you scroll to another (swipe, related, or autoplay), '
-                  'playback pauses and a block appears — then you close the tab.',
-                  style: textTheme.bodyLarge?.copyWith(
-                    color: SessionCutColors.muted,
-                    height: 1.45,
-                  ),
-                ),
-                const SizedBox(height: 32),
-                if (isAndroid) ...[
-                  FilledButton.icon(
-                    onPressed: () => _openAccessibilitySettings(context),
-                    icon: const Icon(Icons.accessibility_new_rounded),
-                    label: const Text('Open Accessibility settings'),
-                  ),
-                  const SizedBox(height: 36),
-                  Text(
-                    'Android setup',
-                    style: textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  const _SetupStep(
-                    number: '1',
-                    text: 'Open Accessibility settings and enable '
-                        '“YTScrollingKiller Shorts Guard”.',
-                  ),
-                  const _SetupStep(
-                    number: '2',
-                    text: 'Open a Short in Chrome (or another supported browser).',
-                  ),
-                  const _SetupStep(
-                    number: '3',
-                    text: 'Watch that Short as usual — nothing else happens.',
-                  ),
-                  const _SetupStep(
-                    number: '4',
-                    text: 'Scroll to another Short — playback pauses and '
-                        'the block appears.',
-                  ),
-                  const _SetupStep(
-                    number: '5',
-                    text: 'Tap “Close tab” — the only action available.',
-                    isLast: true,
-                  ),
-                  const SizedBox(height: 28),
+                    if (isAndroid)
+                      _StickyCtaBar(
+                        guardEnabled: _guardEnabled == true,
+                        bottomInset: bottomInset,
+                        onPressed: () => _openAccessibilitySettings(context),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SessionAtmosphere extends StatelessWidget {
+  const _SessionAtmosphere();
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: RadialGradient(
+            center: Alignment(-0.55, -0.85),
+            radius: 1.15,
+            colors: [
+              Color(0x332A1A16),
+              SessionCutColors.ink,
+            ],
+            stops: [0.0, 0.72],
+          ),
+        ),
+        child: Align(
+          alignment: Alignment.bottomCenter,
+          child: Container(
+            height: MediaQuery.sizeOf(context).height * 0.35,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.transparent,
+                  Color(0x66160C0A),
                 ],
-                if (isIos) ...[
-                  Text(
-                    'iOS',
-                    style: textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Browser scroll-blocking is implemented for Android first. '
-                    'iOS Safari support will follow in a later update.',
-                    style: textTheme.bodyMedium?.copyWith(
-                      color: SessionCutColors.muted,
-                      height: 1.45,
-                    ),
-                  ),
-                  const SizedBox(height: 28),
-                ],
-                Text(
-                  'How it works',
-                  style: textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'The Accessibility service watches the browser URL. '
-                  'Opening a Short is silent. Changing to a different Short id '
-                  'pauses playback and shows the overlay. '
-                  'This app does not open the video — playback stays in the browser.',
-                  style: textTheme.bodyMedium?.copyWith(
-                    color: SessionCutColors.muted,
-                    height: 1.45,
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _GuardStatusCard extends StatelessWidget {
+  const _GuardStatusCard({
+    required this.enabled,
+    required this.loading,
+  });
+
+  final bool? enabled;
+  final bool loading;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final isOn = enabled == true;
+    final statusColor =
+        isOn ? SessionCutColors.success : SessionCutColors.accent;
+    final title = loading
+        ? 'Checking Shorts Guard…'
+        : isOn
+            ? 'Shorts Guard is on'
+            : 'Shorts Guard is off';
+    final subtitle = loading
+        ? 'Reading Accessibility settings'
+        : isOn
+            ? 'You’re set — open a Short in Chrome.'
+            : 'Turn it on so scrolling to another Short gets cut.';
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(SessionCutSpace.md),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: statusColor.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                isOn
+                    ? Icons.check_circle_rounded
+                    : Icons.shield_outlined,
+                color: statusColor,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: SessionCutSpace.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: textTheme.bodySmall?.copyWith(
+                      color: SessionCutColors.muted,
+                      height: 1.35,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _IosComingLaterCard extends StatelessWidget {
+  const _IosComingLaterCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(SessionCutSpace.md),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Coming later on iOS',
+              style: textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: SessionCutSpace.xs),
+            Text(
+              'Browser scroll-blocking ships on Android first. '
+              'Safari support will follow in a later update.',
+              style: textTheme.bodyMedium?.copyWith(
+                color: SessionCutColors.muted,
+                height: 1.45,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StickyCtaBar extends StatelessWidget {
+  const _StickyCtaBar({
+    required this.guardEnabled,
+    required this.bottomInset,
+    required this.onPressed,
+  });
+
+  final bool guardEnabled;
+  final double bottomInset;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: SessionCutColors.ink.withValues(alpha: 0.92),
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.fromLTRB(
+          SessionCutSpace.lg,
+          SessionCutSpace.sm,
+          SessionCutSpace.lg,
+          SessionCutSpace.md + bottomInset,
+        ),
+        decoration: const BoxDecoration(
+          border: Border(
+            top: BorderSide(color: SessionCutColors.outline),
+          ),
+        ),
+        child: guardEnabled
+            ? OutlinedButton.icon(
+                onPressed: onPressed,
+                icon: const Icon(Icons.settings_accessibility_rounded),
+                label: const Text('Open Accessibility again'),
+              )
+            : FilledButton.icon(
+                onPressed: onPressed,
+                icon: const Icon(Icons.shield_rounded),
+                label: const Text('Turn on Shorts Guard'),
+              ),
       ),
     );
   }
@@ -247,23 +481,33 @@ class _SetupStep extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
+          Container(
             width: 28,
+            height: 28,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: SessionCutColors.accent.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(8),
+            ),
             child: Text(
               number,
-              style: textTheme.titleSmall?.copyWith(
+              style: textTheme.labelLarge?.copyWith(
                 color: SessionCutColors.accent,
                 fontWeight: FontWeight.w700,
                 fontFeatures: const [FontFeature.tabularFigures()],
               ),
             ),
           ),
+          const SizedBox(width: SessionCutSpace.sm),
           Expanded(
-            child: Text(
-              text,
-              style: textTheme.bodyMedium?.copyWith(
-                color: SessionCutColors.text,
-                height: 1.4,
+            child: Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                text,
+                style: textTheme.bodyMedium?.copyWith(
+                  color: SessionCutColors.text,
+                  height: 1.4,
+                ),
               ),
             ),
           ),

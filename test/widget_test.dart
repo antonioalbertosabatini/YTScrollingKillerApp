@@ -7,6 +7,6 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('YTScrollingKiller'), findsOneWidget);
     expect(find.text('One Short, then stop'), findsOneWidget);
-    expect(find.textContaining('playback pauses'), findsOneWidget);
+    expect(find.textContaining('session cuts'), findsOneWidget);
   });
 }

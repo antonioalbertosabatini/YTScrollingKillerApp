@@ -12,7 +12,7 @@ Allow one YouTube Short in a mobile browser. When the Shorts video id changes (s
 | `app/src/main/res/layout/scroll_block_overlay.xml` | Blocking UI |
 | `app/src/main/res/drawable/scroll_block_*.xml` | Panel / button shapes |
 | `app/src/main/res/values/strings.xml` | English copy + service description |
-| `app/src/main/kotlin/.../MainActivity.kt` | MethodChannel `openAccessibilitySettings` |
+| `app/src/main/kotlin/.../MainActivity.kt` | MethodChannel `openAccessibilitySettings`, `isAccessibilityServiceEnabled` |
 | `app/src/main/AndroidManifest.xml` | Service registration |
 | `app/src/main/res/xml/shorts_accessibility_service.xml` | Accessibility service config (`canPerformGestures`) |
 
@@ -26,13 +26,14 @@ Allow one YouTube Short in a mobile browser. When the Shorts video id changes (s
 
 ## Pause on block
 
-Before the overlay is shown:
+Full cascade before the overlay (no early exit):
 
-1. Try Accessibility click on Pause controls.
-2. Fallback: center-screen tap gesture (`dispatchGesture`).
-3. Backup: transient audio focus request to interrupt browser media audio.
+1. Accessibility click on Pause controls (best-effort).
+2. Audio focus (`AUDIOFOCUS_GAIN`) to interrupt browser media.
+3. Sequential center-screen taps at several Y positions (`dispatchGesture`).
+4. Mute `STREAM_MUSIC` as a fallback (volume restored on Close tab / destroy).
 
-The overlay is shown only after pause attempts settle, so gestures hit the browser — not the overlay.
+After the overlay is shown, non-touch retries re-apply audio focus and mute (gestures would hit the overlay). The overlay is shown only after pause taps settle, so gestures hit the browser — not the overlay.
 
 ## Overlay
 
@@ -57,4 +58,6 @@ Configured in `ShortsAccessibilityService.WATCHED_PACKAGES`.
 ## MethodChannel
 
 - Name: `com.ytscrollingkiller.ytscrolling_killer/accessibility`
-- Method: `openAccessibilitySettings`
+- Methods:
+  - `openAccessibilitySettings` — opens system Accessibility settings
+  - `isAccessibilityServiceEnabled` — `true` if Shorts Guard is enabled

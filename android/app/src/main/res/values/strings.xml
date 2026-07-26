@@ -3,7 +3,7 @@
     <string name="app_name">YTScrollingKiller</string>
     <string name="accessibility_service_description">Allows watching one YouTube Short in the browser. Pauses playback when you scroll to another Short, then lets you close the tab.</string>
     <string name="scroll_block_title">Session stopped</string>
-    <string name="scroll_block_message">This Short is paused. Close the tab to leave — scrolling to more Shorts is blocked.</string>
+    <string name="scroll_block_message">Scrolling to more Shorts is blocked. Close the tab to leave.</string>
     <string name="scroll_block_close_button">Close tab</string>
     <string name="accessibility_service_label">YTScrollingKiller Shorts Guard</string>
 </resources>

@@ -39,7 +39,10 @@ class ShortsAccessibilityService : AccessibilityService() {
 
     private var overlayView: FrameLayout? = null
     private var audioFocusRequest: AudioFocusRequest? = null
+    /** Saved STREAM_MUSIC volume while muted as a pause fallback; null if not muted. */
+    private var mutedVolumeToRestore: Int? = null
     private val mainHandler = Handler(Looper.getMainLooper())
+    private val silenceRetryRunnables = mutableListOf<Runnable>()
 
     override fun onServiceConnected() {
         serviceInfo = serviceInfo?.apply {
@@ -76,7 +79,9 @@ class ShortsAccessibilityService : AccessibilityService() {
     }
 
     override fun onDestroy() {
+        cancelSilenceRetries()
         dismissOverlay()
+        restoreStreamVolume()
         abandonAudioFocus()
         super.onDestroy()
     }
@@ -123,21 +128,18 @@ class ShortsAccessibilityService : AccessibilityService() {
     }
 
     /**
-     * Pause under the browser first, then show the overlay.
-     * Order matters: a center-tap gesture must not hit the overlay.
+     * Full pause cascade under the browser, then overlay.
+     * Order matters: center-tap gestures must not hit the overlay.
      */
     private fun pauseActiveShortThenShowOverlay() {
-        val clickedPause = tryClickPauseControl()
-        if (clickedPause) {
-            requestAudioFocusBackup()
-            mainHandler.postDelayed({ showOverlay() }, PAUSE_SETTLE_MS)
-            return
-        }
-
+        tryClickPauseControl()
         requestAudioFocusBackup()
-        val gestured = dispatchCenterTapGesture { showOverlay() }
-        if (!gestured) {
-            mainHandler.postDelayed({ showOverlay() }, PAUSE_SETTLE_MS)
+        dispatchPauseTapsThenFinish(0) {
+            muteStreamAsFallback()
+            showOverlay()
+            if (overlayView != null) {
+                scheduleSilenceRetries()
+            }
         }
     }
 
@@ -152,10 +154,26 @@ class ShortsAccessibilityService : AccessibilityService() {
         return false
     }
 
-    private fun dispatchCenterTapGesture(onDone: () -> Unit): Boolean {
+    /** Sequential center taps at several Y positions; always invokes [onDone] once. */
+    private fun dispatchPauseTapsThenFinish(index: Int, onDone: () -> Unit) {
+        if (index >= PAUSE_TAP_Y_FRACTIONS.size) {
+            mainHandler.postDelayed(onDone, PAUSE_SETTLE_MS)
+            return
+        }
+
+        val fraction = PAUSE_TAP_Y_FRACTIONS[index]
+        val dispatched = dispatchTapAtFraction(fraction) {
+            dispatchPauseTapsThenFinish(index + 1, onDone)
+        }
+        if (!dispatched) {
+            dispatchPauseTapsThenFinish(index + 1, onDone)
+        }
+    }
+
+    private fun dispatchTapAtFraction(yFraction: Float, onDone: () -> Unit): Boolean {
         val dm = resources.displayMetrics
         val x = dm.widthPixels / 2f
-        val y = dm.heightPixels * 0.42f
+        val y = dm.heightPixels * yFraction
 
         val path = Path().apply { moveTo(x, y) }
         val stroke = GestureDescription.StrokeDescription(path, 0, 60)
@@ -170,14 +188,14 @@ class ShortsAccessibilityService : AccessibilityService() {
                     }
 
                     override fun onCancelled(gestureDescription: GestureDescription?) {
-                        Log.w(TAG, "Center tap pause cancelled")
+                        Log.w(TAG, "Pause tap cancelled at y=$yFraction")
                         mainHandler.post(onDone)
                     }
                 },
                 null,
             )
         } catch (e: Exception) {
-            Log.e(TAG, "Center tap pause failed", e)
+            Log.e(TAG, "Pause tap failed at y=$yFraction", e)
             false
         }
     }
@@ -186,11 +204,13 @@ class ShortsAccessibilityService : AccessibilityService() {
         val am = getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                // Abandon previous request before re-requesting (retries).
+                audioFocusRequest?.let { am.abandonAudioFocusRequest(it) }
                 val attrs = AudioAttributes.Builder()
                     .setUsage(AudioAttributes.USAGE_MEDIA)
                     .setContentType(AudioAttributes.CONTENT_TYPE_MOVIE)
                     .build()
-                val request = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
+                val request = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
                     .setAudioAttributes(attrs)
                     .setOnAudioFocusChangeListener { }
                     .build()
@@ -201,7 +221,7 @@ class ShortsAccessibilityService : AccessibilityService() {
                 am.requestAudioFocus(
                     null,
                     AudioManager.STREAM_MUSIC,
-                    AudioManager.AUDIOFOCUS_GAIN_TRANSIENT,
+                    AudioManager.AUDIOFOCUS_GAIN,
                 )
             }
         } catch (e: Exception) {
@@ -223,6 +243,51 @@ class ShortsAccessibilityService : AccessibilityService() {
         } finally {
             audioFocusRequest = null
         }
+    }
+
+    private fun muteStreamAsFallback() {
+        val am = getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return
+        try {
+            if (mutedVolumeToRestore == null) {
+                mutedVolumeToRestore = am.getStreamVolume(AudioManager.STREAM_MUSIC)
+            }
+            am.setStreamVolume(AudioManager.STREAM_MUSIC, 0, 0)
+        } catch (e: Exception) {
+            Log.w(TAG, "Mute stream failed", e)
+        }
+    }
+
+    private fun restoreStreamVolume() {
+        val saved = mutedVolumeToRestore ?: return
+        mutedVolumeToRestore = null
+        val am = getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return
+        try {
+            val max = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+            am.setStreamVolume(AudioManager.STREAM_MUSIC, saved.coerceIn(0, max), 0)
+        } catch (e: Exception) {
+            Log.w(TAG, "Restore stream volume failed", e)
+        }
+    }
+
+    /** Non-touch retries after overlay (gestures would hit the overlay). */
+    private fun scheduleSilenceRetries() {
+        cancelSilenceRetries()
+        for (delayMs in SILENCE_RETRY_DELAYS_MS) {
+            val runnable = Runnable {
+                if (mode != Mode.Blocked || overlayView == null) return@Runnable
+                requestAudioFocusBackup()
+                muteStreamAsFallback()
+            }
+            silenceRetryRunnables.add(runnable)
+            mainHandler.postDelayed(runnable, delayMs)
+        }
+    }
+
+    private fun cancelSilenceRetries() {
+        for (runnable in silenceRetryRunnables) {
+            mainHandler.removeCallbacks(runnable)
+        }
+        silenceRetryRunnables.clear()
     }
 
     private fun showOverlay() {
@@ -263,8 +328,12 @@ class ShortsAccessibilityService : AccessibilityService() {
             animateOverlayIn(view, panel)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to show overlay", e)
+            cancelSilenceRetries()
+            restoreStreamVolume()
+            abandonAudioFocus()
             mode = Mode.Idle
             activeShortId = null
+            browserPackage = null
         }
     }
 
@@ -294,7 +363,9 @@ class ShortsAccessibilityService : AccessibilityService() {
     }
 
     private fun onCloseTabClicked() {
+        cancelSilenceRetries()
         dismissOverlay()
+        restoreStreamVolume()
         abandonAudioFocus()
         // Let the browser regain the active window after overlay removal.
         mainHandler.postDelayed({
@@ -483,6 +554,12 @@ class ShortsAccessibilityService : AccessibilityService() {
         private const val YOUTUBE_HOME = "https://www.youtube.com/"
         private const val PAUSE_SETTLE_MS = 220L
         private const val OVERLAY_ANIM_MS = 220L
+
+        /** Center-X tap Y fractions (player area; avoid right-side action rail). */
+        private val PAUSE_TAP_Y_FRACTIONS = floatArrayOf(0.38f, 0.45f, 0.52f)
+
+        /** Post-overlay non-touch silence retries (audio focus + mute). */
+        private val SILENCE_RETRY_DELAYS_MS = longArrayOf(400L, 1000L)
 
         private val WATCHED_PACKAGES = setOf(
             "com.android.chrome",
