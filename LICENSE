@@ -1,0 +1,143 @@
+YTScrollingKiller Personal Use License 1.0
+==========================================
+
+Copyright (c) 2026 Antonio Alberto Sabatini
+
+This license applies to the entire YTScrollingKiller repository and all
+material contained in it, including without limitation source code,
+documentation, configuration, assets, and related files (the "Software").
+
+This is a source-available proprietary license. It is not an open-source
+license. Except for the limited rights expressly granted below, all rights
+are reserved by the copyright holder.
+
+
+1. Definitions
+--------------
+
+"You" means a natural person acting in an individual personal capacity.
+
+"Organization" means any company, partnership, association, government body,
+non-profit, or other legal entity, and any employer or client on whose behalf
+You might act.
+
+"Distribute" means to make the Software, or any modified version of it,
+available to any other person or Organization by any means, including without
+limitation publishing source code or binaries, sharing archives, uploading to
+a public repository or mirror, publishing a public fork, offering downloads,
+or otherwise transferring copies, whether free of charge or for payment.
+
+
+2. License grant
+----------------
+
+Subject to the terms of this license, the copyright holder grants You a
+limited, non-exclusive, non-transferable, revocable, royalty-free license to:
+
+  (a) download, compile, install, and run the Software for Your personal use;
+  (b) privately modify the Software; and
+  (c) privately use Your modified versions,
+
+solely for Your own personal purposes and not for or on behalf of any
+Organization.
+
+Personal use under this license is permitted even if You earn income from
+other activities (for example, using the Software on Your own personal device
+as a content creator), provided You comply with all restrictions below.
+
+
+3. Restrictions
+---------------
+
+You may not, and may not permit others to:
+
+  (a) Distribute the Software or any modified version of it, whether free of
+      charge or for payment;
+  (b) sell, rent, lease, sublicense, or otherwise commercially exploit the
+      Software, or offer any product or service that is based on or includes
+      the Software;
+  (c) use the Software for or on behalf of any Organization, including
+      workplace or employment use;
+  (d) publish a public fork, mirror, or re-host the Software elsewhere; or
+  (e) remove or alter any copyright, license, or attribution notices.
+
+Linking to the official public repository maintained by the copyright holder
+is permitted. Creating a private local clone for Your licensed personal use
+is permitted. Publishing that clone or any copy publicly is not.
+
+
+4. Attribution
+--------------
+
+You must retain all copyright notices and a copy of this license in all
+copies of the Software that You keep for licensed personal use. If You
+publicly refer to the Software or this project, You must give appropriate
+credit to Antonio Alberto Sabatini and identify this license by name.
+
+
+5. Contributions
+----------------
+
+Collaboration through pull requests and similar contributions is welcome.
+
+By submitting a contribution (including a pull request, patch, or other
+submission) to the Software, You assign and transfer to Antonio Alberto
+Sabatini all right, title, and interest in and to that contribution,
+including all copyright and related rights worldwide, to the maximum extent
+permitted by applicable law. To the extent such assignment is not effective,
+You grant Antonio Alberto Sabatini an irrevocable, perpetual, worldwide,
+royalty-free, exclusive license to use, reproduce, modify, distribute,
+sublicense, and otherwise exploit the contribution in any manner, and You
+agree not to assert any moral or similar rights against such exploitation
+to the extent waivable.
+
+You represent that You have the right to make the contribution and the
+assignment or license above.
+
+
+6. No trademark reservation
+---------------------------
+
+This license does not claim or reserve trademark rights in the name
+"YTScrollingKiller". Nothing in this section grants You any right to
+Distribute the Software.
+
+
+7. Disclaimer of warranty
+-------------------------
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT. YOU USE THE SOFTWARE
+AT YOUR OWN RISK.
+
+
+8. Limitation of liability
+--------------------------
+
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL THE
+COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF,
+OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+
+9. Termination
+--------------
+
+This license terminates automatically if You breach any of its terms. Upon
+termination, You must cease all use of the Software and destroy all copies
+in Your possession or control. Sections 5, 7, 8, 9, and 10 survive
+termination.
+
+
+10. General
+-----------
+
+If any provision of this license is held unenforceable, the remaining
+provisions remain in effect. This license is the entire agreement between
+You and the copyright holder concerning the Software and supersedes any prior
+understandings on that subject. No right is granted by implication, estoppel,
+or otherwise except as expressly stated herein.
+
+No governing law or venue is designated by this license.

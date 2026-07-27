@@ -87,4 +87,11 @@ flutter run
 
 ## License
 
-Private / unpublished — local development.
+[YTScrollingKiller Personal Use License 1.0](LICENSE) — Copyright (c) 2026 Antonio Alberto Sabatini.
+
+- Personal use only by natural persons (compile, run, and privately modify)
+- No redistribution (free or paid), no public forks or re-hosting
+- No sale or commercial exploitation; no organizational / workplace use
+- Pull requests welcome; contributors assign copyright to Antonio Alberto Sabatini
+
+This is source-available proprietary licensing, not an OSI open-source license. See [LICENSE](LICENSE) for the full terms.
